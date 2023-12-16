@@ -102,7 +102,7 @@ plt.fill_between(np.arange(140), decoded_data[0], anomalous_test_data[0], color=
 plt.legend(labels=["Input", "Reconstruction", "Error"])
 plt.show()
 
-# plot histogram to all anomalous ecgs in relation to their test_loss rates
+# plot histogram to all normal ecgs in relation to their test_loss rates
 my_reconstructions = autoencoder.predict(normal_train_data)
 train_loss = tf.keras.losses.mae(my_reconstructions, normal_train_data)
 plt.hist(train_loss[None, :], bins=50)
