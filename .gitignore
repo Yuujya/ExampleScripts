@@ -1,0 +1,4 @@
+*.png
+*.gif
+training_checkpoints/
+.idea/
