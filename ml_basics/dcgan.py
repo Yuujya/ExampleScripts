@@ -54,6 +54,7 @@ def make_discriminator_model():
     return model
 
 
+# fake = 0 and real = 1, thus predict 1 for real data and 0 for fake data in binary cross entropy (classifies to 0 or 1)
 def discriminator_loss(real_output, fake_output):
     real_loss = cross_entropy(tf.ones_like(real_output), real_output)
     fake_loss = cross_entropy(tf.zeros_like(fake_output), fake_output)
@@ -61,6 +62,7 @@ def discriminator_loss(real_output, fake_output):
     return total_loss
 
 
+# compares fake output to 1s, output is 1 if fake manages to be detected as real
 def generator_loss(fake_output):
     return cross_entropy(tf.ones_like(fake_output), fake_output)
 
@@ -69,20 +71,27 @@ def generator_loss(fake_output):
 # This annotation causes the function to be "compiled".
 @tf.function
 def train_step(images):
+    # noise samples z
     noise = tf.random.normal([BATCH_SIZE, noise_dim])
 
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
+        # generated image G(z)
         generated_images = generator(noise, training=True)
 
+        # real data images is x with output D(x)
         real_output = discriminator(images, training=True)
+        # fake output z with output D(G(z))
         fake_output = discriminator(generated_images, training=True)
 
+        # check if fake data is real
         gen_loss = generator_loss(fake_output)
         disc_loss = discriminator_loss(real_output, fake_output)
 
+    # compute gradient based on loss of generator or discriminator
     gradients_of_generator = gen_tape.gradient(gen_loss, generator.trainable_variables)
     gradients_of_discriminator = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
 
+    # update weights
     generator_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
     discriminator_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
 
@@ -134,7 +143,7 @@ def display_image(epoch_no):
     return PIL.Image.open('image_at_epoch_{:04d}.png'.format(epoch_no))
 
 
-(train_images, train_labels), (_, _) = tf.keras.datasets.mnist.load_data()
+(train_images, train_labels), (_, _) = tf.keras.datasets.fashion_mnist.load_data()
 
 train_images = train_images.reshape(train_images.shape[0], 28, 28, 1).astype('float32')
 train_images = (train_images - 127.5) / 127.5  # Normalize the images to [-1, 1]
@@ -148,15 +157,15 @@ train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(BUFFER_
 # create image
 generator = make_generator_model()
 
-noise = tf.random.normal([1, 100])
-generated_image = generator(noise, training=False)
-
-plt.imshow(generated_image[0, :, :, 0], cmap='gray')
+# noise = tf.random.normal([1, 100])
+# generated_image = generator(noise, training=False)
+#
+# plt.imshow(generated_image[0, :, :, 0], cmap='gray')
 
 # classify image as real or fake
 discriminator = make_discriminator_model()
-decision = discriminator(generated_image)
-print(decision)
+# decision = discriminator(generated_image)
+# print(decision)
 
 # This method returns a helper function to compute cross entropy loss
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -172,7 +181,7 @@ checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
                                  discriminator=discriminator)
 
 # training loop starts here
-EPOCHS = 50
+EPOCHS = 10
 noise_dim = 100
 num_examples_to_generate = 16
 
