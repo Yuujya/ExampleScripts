@@ -1,5 +1,5 @@
 from client import Client
-
+from playsound import playsound
 
 def main():
     client = Client()
@@ -22,7 +22,12 @@ def main():
         elif choice == '3':
             transcription = client.create_transcription()
             print(transcription)
-            client.stream_chat_request(transcription)
+            response_from_transcription = client.process_transcription_request(transcription)
+            print(response_from_transcription)
+            from_transcription_file = "from_transcription.wav"
+            client.from_transcription_to_speech(from_transcription_file, response_from_transcription)
+            playsound(from_transcription_file)
+
         elif choice == 'q':
             print(f'Exit program.')
             break
