@@ -42,6 +42,28 @@ class Client(OpenAI):
         )
         return transcript.text
 
+    def process_transcription_request(self, prompt: str):
+        response = self.chat.completions.create(
+            model=self.model,
+            messages=[{'role': 'user', 'content': prompt}],
+            temperature=self.temperature
+        )
+        content = response.choices[0].message.content
+        return content
+
+    def from_transcription_to_speech(self, filename, transcription):
+        """
+        Generate spoken audio from transcription.
+        :return: string prompt of generated voice
+        """
+        speech_file_path = filename
+        response = self.audio.speech.create(
+            model="tts-1",
+            voice="alloy",
+            input=transcription
+        )
+        response.stream_to_file(speech_file_path)
+
 
 def record_voice(filename: str = 'output.wav',
                  seconds=3):
