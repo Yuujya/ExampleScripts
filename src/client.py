@@ -1,6 +1,11 @@
+import queue
+import sys
+
 from openai import OpenAI
 import sounddevice as sd
+from playsound import playsound
 from scipy.io.wavfile import write
+import soundfile as sf
 
 
 class Client(OpenAI):
@@ -64,11 +69,54 @@ class Client(OpenAI):
         )
         response.stream_to_file(speech_file_path)
 
+    def create_transcription_alt(self):
+        """
+        Record voice and return a string prompt.
+        :return: string prompt of recorded voice
+        """
+        filename = record_voice_alt()
+        audio_file = open(filename, 'rb')
+        transcript = self.audio.transcriptions.create(
+            model='whisper-1',
+            file=audio_file
+        )
+        return filename, transcript.text
+
 
 def record_voice(filename: str = 'output.wav',
-                 seconds=3):
+                 seconds=10):
     fs = 44100  # Sample rate
     recording = sd.rec(int(seconds * fs), samplerate=fs, channels=2)
     sd.wait()
     write(filename, fs, recording)
     return filename
+
+
+def callback(indata, frames, time, status):
+    """This is called (from a separate thread) for each audio block."""
+    if status:
+        print(status, file=sys.stderr)
+    q.put(indata.copy())
+
+
+q = queue.Queue()
+
+
+def record_voice_alt(filename='test_speech.wav', samplerate=44100, channels=2):
+    try:
+        # Make sure the file is opened before recording anything:
+        with sf.SoundFile(file=filename, mode='x', samplerate=samplerate,
+                          channels=channels) as file:
+            with sd.InputStream(samplerate=samplerate,
+                                channels=channels, callback=callback):
+                print('#' * 80)
+                print('press Ctrl+C to stop the recording')
+                # TODO: execution in PyCharm does not detect interrupt signal in child process
+                print('#' * 80)
+                while True:
+                    file.write(q.get())
+    except KeyboardInterrupt:
+        print('\nRecording finished: ' + filename)
+        return filename
+    except Exception as e:
+        exit(type(e).__name__ + ': ' + str(e))
